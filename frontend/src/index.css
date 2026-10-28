@@ -32,7 +32,8 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
 .urgent { color: var(--urgent); font-weight: 600; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 
-.app { max-width: 1440px; margin: 0 auto; padding: 0 28px 48px; }
+.app { max-width: 1440px; margin: 0 auto; padding: 0 28px; min-height: 100vh; display: flex; flex-direction: column; }
+.app > main { flex: 1; }
 
 /* Top bar */
 .top { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; }
@@ -65,7 +66,7 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
 .how li { counter-increment: how; color: var(--ink-soft); font-size: 14px; padding-top: 12px; border-top: 2px solid var(--line); }
 .how li::before { content: counter(how); display: block; font-weight: 600; color: var(--fight); margin-bottom: 4px; }
 .how strong { display: block; color: var(--ink); }
-.credit { margin-top: 40px; text-align: center; }
+.credit { padding: 32px 0 20px; text-align: center; }
 @media (max-width: 760px) { .how { grid-template-columns: 1fr; } }
 
 /* Desk layout */

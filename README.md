@@ -41,6 +41,7 @@ You need a free [Braintree sandbox account](https://www.braintreepayments.com/sa
    npm run dev
    ```
 3. Open http://localhost:5173 and click **Simulate a chargeback**.
+4. Optional: fill the demo shop with 17 more real sandbox chargebacks (strong and weak cases) by running `python -m settle.seed` in `backend`.
 
 To serve everything from one process, run `npm run build` in `frontend`. The backend then serves the built dashboard at http://localhost:8010.
 
