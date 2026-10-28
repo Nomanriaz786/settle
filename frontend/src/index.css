@@ -57,11 +57,11 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
 .quiet:hover:not(:disabled) { border-color: var(--ink-soft); }
 
 /* Summary sentence */
-.summary { padding: 40px 0 28px; max-width: 900px; }
-.summary h1 { font-size: clamp(26px, 3.2vw, 38px); line-height: 1.18; font-weight: 600; letter-spacing: -0.02em; }
+.summary { padding: 40px 0 28px; }
+.summary h1 { max-width: 900px; font-size: clamp(26px, 3.2vw, 38px); line-height: 1.18; font-weight: 600; letter-spacing: -0.02em; }
 .summary h1 .sub { color: var(--ink-soft); font-weight: 500; }
 .summary p { margin-top: 12px; color: var(--ink-soft); max-width: 62ch; }
-.how { margin: 22px 0 0; padding: 0; list-style: none; counter-reset: how; display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; max-width: 1100px; }
+.how { margin: 22px 0 0; padding: 0; list-style: none; counter-reset: how; display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; }
 .how li { counter-increment: how; color: var(--ink-soft); font-size: 14px; padding-top: 12px; border-top: 2px solid var(--line); }
 .how li::before { content: counter(how); display: block; font-weight: 600; color: var(--fight); margin-bottom: 4px; }
 .how strong { display: block; color: var(--ink); }
