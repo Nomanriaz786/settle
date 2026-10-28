@@ -94,5 +94,5 @@ class Agent:
 def _validate(v):
     if v.get("verdict") not in ("fight", "accept"):
         raise AgentError(f"Invalid verdict {v.get('verdict')!r}")
-    v["confidence"] = max(0.0, min(1.0, float(v.get("confidence", 0))))
+    v["confidence"] = max(0.0, min(0.95, float(v.get("confidence", 0))))  # no dispute is certain
     return v

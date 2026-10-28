@@ -53,3 +53,8 @@ def test_on_step_callback_sees_each_step():
                   {"tool_calls": [tool_call("submit_verdict", VERDICT, "c2")]})
     Agent(llm, "m", {"get_order": lambda transaction_id: {}}).run(DISPUTE, on_step=steps.append)
     assert steps[0]["tool"] == "get_order"
+
+
+def test_confidence_is_capped_at_95_percent():
+    llm = FakeLLM({"tool_calls": [tool_call("submit_verdict", {**VERDICT, "confidence": 1.0})]})
+    assert Agent(llm, "m", {}).run(DISPUTE)["confidence"] == 0.95

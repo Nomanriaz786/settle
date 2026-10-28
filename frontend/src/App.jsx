@@ -57,7 +57,7 @@ function ReplyCell({ data }) {
 }
 
 function VerdictCell({ data }) {
-  if (!data.verdict) return <span className="muted">{data.status === 'open' ? 'Not reviewed' : ''}</span>
+  if (!data.verdict) return <span className="muted">{data.status === 'open' ? 'Needs review' : ''}</span>
   return <span className={`pill ${data.verdict}`}>{data.verdict === 'fight' ? 'Fight' : 'Accept'} {Math.round(data.confidence * 100)}%</span>
 }
 
@@ -67,7 +67,7 @@ const columns = [
     type: 'rightAligned', width: 110, cellClass: 'num' },
   { headerName: 'Reason', field: 'reason', valueFormatter: (p) => SHORT_REASONS[p.value] || p.value, flex: 1, minWidth: 130 },
   { headerName: 'Reply by', field: 'reply_by', cellRenderer: ReplyCell, width: 130 },
-  { headerName: 'Settle says', field: 'verdict', cellRenderer: VerdictCell, width: 140 },
+  { headerName: 'Recommendation', field: 'verdict', cellRenderer: VerdictCell, width: 150 },
 ]
 
 function DeadlineBar({ received, replyBy }) {
@@ -214,10 +214,10 @@ function CaseFile({ id, onChanged, notify }) {
         <span className="case-amount num">{money(dispute.amount)}</span>
       </header>
       {dispute.status === 'open' && dispute.reply_by && <DeadlineBar received={dispute.received} replyBy={dispute.reply_by} />}
-      <section className="block"><h3>The order</h3><OrderFacts order={dispute.order} /></section>
-      <section className="block"><h3>Evidence on file</h3><Checklist items={dispute.checklist} strength={dispute.strength} /></section>
       <Recommendation key={`${dispute.id}-${dispute.analysis?.evidence_text ?? ''}-${dispute.status}`}
         dispute={dispute} onDone={refresh} notify={notify} />
+      <section className="block"><h3>Evidence the card network looks for</h3><Checklist items={dispute.checklist} strength={dispute.strength} /></section>
+      <section className="block"><h3>The order</h3><OrderFacts order={dispute.order} /></section>
       <p className="case-id muted small">Braintree dispute {dispute.id}, payment {dispute.transaction_id}</p>
     </aside>
   )
@@ -241,7 +241,8 @@ export default function App() {
 
   const open = useMemo(() => (rows || []).filter((r) => r.status === 'open'), [rows])
   // open cases first, the most urgent at the top
-  const sorted = useMemo(() => [...(rows || [])].sort((a, b) =>
+  // closed disputes with no shop order are leftovers from sandbox testing, not part of the shop's story
+  const sorted = useMemo(() => (rows || []).filter((r) => r.status === 'open' || r.customer_name).sort((a, b) =>
     (a.status !== 'open') - (b.status !== 'open') || String(a.reply_by).localeCompare(String(b.reply_by))), [rows])
   const atRisk = open.reduce((s, r) => s + Number(r.amount), 0)
   const nextDue = Math.min(...open.map((r) => daysLeft(r.reply_by)).filter((d) => d !== null))
@@ -294,7 +295,11 @@ export default function App() {
               <span className="sub">{nextDue <= 0 ? 'A reply is due today.' : `The next reply is due in ${plural(nextDue, 'day')}.`}</span>
             </h1>
           )}
-          <p>Settle reviews each chargeback, tells you which ones are worth fighting and drafts the evidence. You approve every submission.</p>
+          <ol className="how">
+            <li><strong>A customer disputes a payment.</strong> Braintree opens a chargeback and the merchant has a few days to reply with evidence.</li>
+            <li><strong>Settle's AI agent reviews it.</strong> It pulls the order and the Braintree payment, checks the evidence this dispute reason needs, and recommends fight or accept.</li>
+            <li><strong>You decide.</strong> Evidence goes to Braintree, or the dispute is accepted, only after you click.</li>
+          </ol>
         </section>
 
         <div className="desk">
@@ -311,6 +316,10 @@ export default function App() {
           )}
         </div>
       </main>
+
+      <footer className="credit muted small">
+        Disputes and payments run on the Braintree sandbox, a PayPal service. No real money moves.
+      </footer>
 
       {toast && <div className={`toast ${toast.error ? 'error' : ''}`} role="status">{toast.text}</div>}
     </div>
