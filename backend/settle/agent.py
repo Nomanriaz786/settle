@@ -3,11 +3,14 @@
 It never moves money. Submitting evidence or accepting happens only after a human approves in the UI.
 """
 import json
+import re
+
+MIN_FIGHT_CONFIDENCE = 0.5
 
 SYSTEM = """You are Settle, a chargeback analyst for a small online store using Braintree.
 For the dispute you are given:
 1. Call get_order for the transaction, then check_evidence for the dispute reason.
-2. Decide: "fight" when the evidence is strong enough to win, "accept" when it is weak or the customer has a fair complaint. Fighting a dispute you will lose costs the merchant time and fees.
+2. Decide: "fight" when the evidence is strong enough to win, "accept" when it is weak or the customer has a fair complaint. Fighting a dispute you will lose costs the merchant time and fees, so only fight when your confidence is at least 0.5.
 3. Call submit_verdict. evidence_text is the reply to the card network: factual, polite, under 1200 characters, and it may only state facts that appeared in tool results. Never invent tracking numbers, dates or messages. When fighting, cite the order amount, items, carrier, tracking number and delivery date if known. Confidence is your honest estimate and never above 0.95, because no dispute is certain.
 Write reasons for the merchant in plain English, one short sentence each."""
 
@@ -74,7 +77,15 @@ class Agent:
             for call in calls:
                 args = json.loads(call.function.arguments or "{}")
                 if call.function.name == "submit_verdict":
-                    return {**_validate(args), "steps": steps}
+                    verdict = _validate(args)
+                    invented = _ungrounded(verdict["evidence_text"], [dispute] + [s["result"] for s in steps])
+                    if not invented:
+                        return {**verdict, "steps": steps}
+                    # the model gets another try, with the exact facts it could not back up
+                    messages.append({"role": "tool", "tool_call_id": call.id, "content": json.dumps(
+                        {"error": "evidence_text states facts that are not in any tool result: "
+                                  + ", ".join(invented) + ". Remove them or use only facts from tool results."})})
+                    continue
                 result = self._call(call.function.name, args)
                 step = {"tool": call.function.name, "args": args, "result": result}
                 steps.append(step)
@@ -95,4 +106,17 @@ def _validate(v):
     if v.get("verdict") not in ("fight", "accept"):
         raise AgentError(f"Invalid verdict {v.get('verdict')!r}")
     v["confidence"] = max(0.0, min(0.95, float(v.get("confidence", 0))))  # no dispute is certain
+    if v["verdict"] == "fight" and v["confidence"] < MIN_FIGHT_CONFIDENCE:
+        v.update(verdict="accept", evidence_text="", reasons=[*v.get("reasons", []),
+                 "Settle changed this to accept because the chance of winning is below 50%."])
     return v
+
+
+# Facts a reviewer can check: ISO dates, money amounts, and ids/tracking numbers mixing letters and digits.
+# shortcut: all-digit tracking numbers written with spaces are not checked; add a carrier-format parser if needed.
+FACT = re.compile(r"\b\d{4}-\d{2}-\d{2}\b|\b\d+\.\d{2}\b|\b(?=[A-Za-z0-9]*\d)(?=[A-Za-z0-9]*[A-Za-z])[A-Za-z0-9]{6,}\b")
+
+
+def _ungrounded(text, sources):
+    known = re.sub(r"\s", "", json.dumps(sources, default=str)).upper()
+    return [f for f in dict.fromkeys(FACT.findall(text or "")) if f.upper() not in known]

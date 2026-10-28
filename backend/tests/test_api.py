@@ -91,3 +91,13 @@ def test_simulate_creates_order_linked_to_new_transaction(tmp_path):
 def test_simulate_rejects_unknown_scenario(tmp_path):
     client, _, _ = setup(tmp_path)
     assert client.post("/api/simulate", json={"scenario": "nope"}).status_code == 422
+
+
+def test_analyze_and_simulate_are_rate_limited_per_visitor(tmp_path):
+    store, payments = Store(tmp_path / "t.db"), FakePayments()
+    client = TestClient(create_app(store, payments, lambda: FakeAgent(), hourly_limit=2))
+    assert client.post("/api/disputes/d1/analyze").status_code == 200
+    assert client.post("/api/simulate", json={"scenario": "friendly_fraud"}).status_code == 200
+    r = client.post("/api/disputes/d1/analyze")
+    assert r.status_code == 429
+    assert "limit" in r.json()["detail"].lower()

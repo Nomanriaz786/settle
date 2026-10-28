@@ -1,5 +1,8 @@
 """HTTP API for the Settle dashboard. Money actions only run on an explicit human approve/accept."""
-from fastapi import FastAPI, HTTPException
+import time
+from collections import defaultdict, deque
+
+from fastapi import Depends, FastAPI, HTTPException, Request
 from pydantic import BaseModel
 
 from .evidence import checklist, strength
@@ -14,8 +17,19 @@ class Simulation(BaseModel):
     scenario: str
 
 
-def create_app(store, payments, make_agent):
+def create_app(store, payments, make_agent, hourly_limit=20):
     app = FastAPI(title="Settle")
+    hits_by_visitor = defaultdict(deque)
+
+    def rate_limit(request: Request):
+        """Caps AI reviews and simulations per visitor, so the public demo cannot run up the OpenAI bill."""
+        # shortcut: in-memory, one uvicorn worker; move to Redis if the app runs more than one process
+        now, hits = time.monotonic(), hits_by_visitor[request.client.host if request.client else "unknown"]
+        while hits and now - hits[0] > 3600:
+            hits.popleft()
+        if len(hits) >= hourly_limit:
+            raise HTTPException(429, f"Demo limit reached: {hourly_limit} reviews or simulations per hour. Try again later.")
+        hits.append(now)
 
     def open_dispute(dispute_id):
         dispute = payments.get_dispute(dispute_id)
@@ -41,7 +55,7 @@ def create_app(store, payments, make_agent):
         return {**d, "order": order, "analysis": store.get_analysis(dispute_id),
                 "checklist": checks, "strength": strength(checks)}
 
-    @app.post("/api/disputes/{dispute_id}/analyze")
+    @app.post("/api/disputes/{dispute_id}/analyze", dependencies=[Depends(rate_limit)])
     def analyze(dispute_id: str):
         analysis = make_agent().run(payments.get_dispute(dispute_id))
         store.save_analysis(dispute_id, analysis)
@@ -64,7 +78,7 @@ def create_app(store, payments, make_agent):
         payments.accept(dispute_id)
         return {"ok": True}
 
-    @app.post("/api/simulate")
+    @app.post("/api/simulate", dependencies=[Depends(rate_limit)])
     def simulate(body: Simulation):
         if body.scenario not in SCENARIOS:
             raise HTTPException(422, f"Unknown scenario {body.scenario}")

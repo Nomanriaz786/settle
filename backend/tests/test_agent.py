@@ -58,3 +58,29 @@ def test_on_step_callback_sees_each_step():
 def test_confidence_is_capped_at_95_percent():
     llm = FakeLLM({"tool_calls": [tool_call("submit_verdict", {**VERDICT, "confidence": 1.0})]})
     assert Agent(llm, "m", {}).run(DISPUTE)["confidence"] == 0.95
+
+
+def test_weak_fight_becomes_accept():
+    llm = FakeLLM({"tool_calls": [tool_call("submit_verdict", {**VERDICT, "confidence": 0.3})]})
+    result = Agent(llm, "m", {}).run(DISPUTE)
+    assert result["verdict"] == "accept"
+    assert result["evidence_text"] == ""
+
+
+def test_evidence_with_invented_tracking_number_is_sent_back_to_the_model():
+    invented = {**VERDICT, "evidence_text": "Delivered by UPS, tracking 1Z999FAKE0001, on 2026-10-12."}
+    grounded = {**VERDICT, "evidence_text": "Delivered by UPS, tracking 1Z84F7E20398815510, on 2026-10-12."}
+    order = {"carrier": "UPS", "tracking_number": "1Z84F7E20398815510", "delivered_at": "2026-10-12"}
+    llm = FakeLLM({"tool_calls": [tool_call("get_order", {"transaction_id": "tx1"})]},
+                  {"tool_calls": [tool_call("submit_verdict", invented, "c2")]},
+                  {"tool_calls": [tool_call("submit_verdict", grounded, "c3")]})
+    result = Agent(llm, "m", {"get_order": lambda transaction_id: order}).run(DISPUTE)
+    assert result["evidence_text"] == grounded["evidence_text"]
+    assert "1Z999FAKE0001" in llm.calls[2]["messages"][-1]["content"]
+
+
+def test_evidence_that_never_gets_grounded_fails():
+    invented = {**VERDICT, "evidence_text": "Refunded 99.99 on 2025-01-01."}
+    llm = FakeLLM(*[{"tool_calls": [tool_call("submit_verdict", invented, f"c{i}")]} for i in range(3)])
+    with pytest.raises(AgentError):
+        Agent(llm, "m", {}, max_steps=3).run(DISPUTE)
