@@ -35,12 +35,11 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
 .app { max-width: 1440px; margin: 0 auto; padding: 0 28px 48px; }
 
 /* Top bar */
-.top { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; border-bottom: 1px solid var(--line); }
+.top { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand strong { display: block; font-size: 18px; letter-spacing: -0.01em; }
 .brand span { display: block; font-size: 13px; color: var(--ink-soft); }
-.logo { width: 32px; height: 32px; border-radius: 8px; background: var(--ink); position: relative; }
-.logo::after { content: ''; position: absolute; left: 10px; top: 7px; width: 7px; height: 13px; border: solid var(--paper); border-width: 0 3px 3px 0; transform: rotate(40deg); }
+.logo { width: 36px; height: 36px; flex: none; }
 
 .sim { position: relative; }
 .sim-menu { position: absolute; right: 0; top: calc(100% + 8px); z-index: 20; width: 360px; margin: 0; padding: 6px; list-style: none;
@@ -66,7 +65,7 @@ button:disabled { cursor: not-allowed; opacity: 0.55; }
 .how li { counter-increment: how; color: var(--ink-soft); font-size: 14px; padding-top: 12px; border-top: 2px solid var(--line); }
 .how li::before { content: counter(how); display: block; font-weight: 600; color: var(--fight); margin-bottom: 4px; }
 .how strong { display: block; color: var(--ink); }
-.credit { margin-top: 32px; padding-top: 16px; border-top: 1px solid var(--line); }
+.credit { margin-top: 40px; text-align: center; }
 @media (max-width: 760px) { .how { grid-template-columns: 1fr; } }
 
 /* Desk layout */

@@ -265,7 +265,10 @@ export default function App() {
     <div className="app">
       <header className="top">
         <div className="brand">
-          <span className="logo" aria-hidden="true" />
+          <svg className="logo" viewBox="0 0 32 32" aria-hidden="true">
+            <path d="M16 2.5 27.5 6.6v8.6c0 7-4.7 12.3-11.5 14.3C9.2 27.5 4.5 22.2 4.5 15.2V6.6Z" fill="#1F6F5C" />
+            <path d="M10.5 16.2 14.4 20l7.3-8" fill="none" stroke="#F4F6F5" strokeWidth="2.8" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
           <div><strong>Settle</strong><span>Kiln &amp; Co. ceramics</span></div>
         </div>
         <div className="sim">
